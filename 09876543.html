@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>INK FLOW</title>
+  <style>
+    /* 기본 스타일 */
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+      color: #333;
+      transition: background 0.5s;
+      overflow-x: hidden;
+    }
+    h1, h2 {
+      text-align: center;
+      margin: 20px 0 10px;
+    }
+    /* 스플래시 화면 */
+    #splashScreen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.6s;
+    }
+    #splashScreen h1 {
+      font-size: 80px;
+      letter-spacing: 5px;
+      margin-bottom: 40px;
+    }
+    #enterBtn {
+      padding: 15px 30px;
+      font-size: 20px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background-color: #007BFF;
+      color: #fff;
+      transition: background-color 0.3s, transform 0.3s;
+    }
+    #enterBtn:hover {
+      background-color: #0056b3;
+      transform: translateY(-3px);
+    }
+    /* 상단 컨트롤 영역 */
+    #top-controls {
+      text-align: center;
+      margin-bottom: 20px;
+      opacity: 0;
+      animation: fadeIn 0.6s forwards;
+    }
+    #newProjectName {
+      padding: 8px;
+      font-size: 16px;
+      width: 200px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    /* 버튼 공통 스타일 */
+    button {
+      padding: 8px 12px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 0 5px;
+      border: none;
+      border-radius: 4px;
+      background-color: #007BFF;
+      color: #fff;
+      transition: background-color 0.2s, transform 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+      transform: translateY(-2px);
+    }
+    /* 프로젝트 선택 영역 및 저장 버튼 */
+    #project-select-container {
+      text-align: center;
+      margin-bottom: 10px;
+      opacity: 0;
+      animation: fadeIn 0.8s forwards;
+    }
+    #projectSelect {
+      padding: 8px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    /* 메인/관리자 뷰 전환 */
+    #mainView, #adminView {
+      transition: opacity 0.5s;
+    }
+    .hidden {
+      opacity: 0;
+      pointer-events: none;
+      position: absolute;
+      width: 100%;
+    }
+    /* 작업 카드 컨테이너 (가로 배열) */
+    #tasks-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      opacity: 0;
+      animation: fadeIn 1s forwards;
+    }
+    .task {
+      width: 250px;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 15px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      transition: transform 0.3s, opacity 0.3s;
+    }
+    .task:hover {
+      transform: translateY(-5px);
+    }
+    .task.disabled {
+      opacity: 0.6;
+    }
+    .task-title {
+      font-size: 18px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    /* 상태 버튼 영역 */
+    .status-buttons {
+      margin-bottom: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .status-buttons button {
+      background-color: #f0f0f0;
+      color: #333;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s;
+      flex: 1;
+    }
+    .status-buttons button:hover:not(:disabled) {
+      background-color: #e0e0e0;
+    }
+    .status-buttons button:disabled {
+      cursor: not-allowed;
+      background-color: #ddd;
+    }
+    /* 상태별 active 색상 (메인 화면) */
+    .status-buttons button.active.waiting {
+      background-color: #4CAF50;
+      color: #fff;
+    }
+    .status-buttons button.active.in-progress {
+      background-color: #FFA500;
+      color: #fff;
+    }
+    .status-buttons button.active.completed {
+      background-color: #FF4500;
+      color: #fff;
+    }
+    /* 외주 날짜 입력 영역 */
+    .outsource-container {
+      margin-bottom: 10px;
+      padding: 8px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .outsource-container label {
+      display: block;
+      font-size: 14px;
+      margin: 5px 0 3px;
+    }
+    .outsource-container input {
+      width: 100%;
+      padding: 4px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 5px;
+    }
+    /* 기타사항 영역 */
+    .notes-container label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+    .notes-container textarea {
+      width: 100%;
+      height: 60px;
+      resize: vertical;
+      padding: 5px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    /* 관리자 페이지 영역 */
+    #adminView {
+      display: none;
+      opacity: 0;
+    }
+    #adminContent table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    #adminContent th, #adminContent td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+      font-size: 14px;
+    }
+    #adminContent th {
+      background-color: #f0f0f0;
+    }
+    /* 관리자 페이지 상태 텍스트 스타일 */
+    /* 대기: 진한 검정, 진행중: 진한 주황 (darkorange), 완료: 진한 빨강 (darkred) */
+    /* 기타 상태는 기본 스타일 */
+    /* Fade in 애니메이션 */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 스플래시 화면 -->
+  <div id="splashScreen">
+    <h1>INK FLOW</h1>
+    <button id="enterBtn">시작하기</button>
+  </div>
+  
+  <h1 style="display:none;">현장 작업 현황 프로그램</h1>
+  <!-- 상단 컨트롤 영역 -->
+  <div id="top-controls" style="display:none;">
+    <input type="text" id="newProjectName" placeholder="새 프로젝트 이름 입력">
+    <button id="addProjectBtn">프로젝트 추가</button>
+    <button id="deleteProjectBtn">프로젝트 삭제</button>
+    <button id="editProjectBtn">프로젝트명 수정</button>
+    <button id="adminPageBtn">관리자 페이지</button>
+  </div>
+  
+  <!-- 프로젝트 선택 영역 및 저장 버튼 -->
+  <div id="project-select-container" style="display:none;">
+    <label for="projectSelect">프로젝트 선택: </label>
+    <select id="projectSelect">
+      <!-- 옵션은 스크립트에서 추가 -->
+    </select>
+    <button id="saveBtn">저장</button>
+  </div>
+  <h2 id="projectTitle" style="display:none;">프로젝트: </h2>
+  
+  <!-- 메인 작업 화면 -->
+  <div id="mainView" style="display:none;">
+    <div id="tasks-container">
+      <!-- 작업 카드들은 스크립트에서 생성 -->
+    </div>
+  </div>
+  
+  <!-- 관리자 페이지 (숨김) -->
+  <div id="adminView">
+    <h2>관리자 페이지</h2>
+    <div id="adminContent">
+      <!-- 모든 프로젝트 진행 상황을 표로 표시 -->
+    </div>
+    <button id="backToMainBtn">메인 페이지로 돌아가기</button>
+  </div>
+  
+  <script>
+    /***** 스플래시 화면 처리 *****/
+    document.getElementById("enterBtn").addEventListener("click", function() {
+      // 스플래시 화면을 서서히 숨기고 나머지 UI 표시
+      const splash = document.getElementById("splashScreen");
+      splash.style.opacity = 0;
+      setTimeout(() => {
+        splash.style.display = "none";
+        // 나머지 UI 표시
+        document.querySelector("h1").style.display = "block";
+        document.getElementById("top-controls").style.display = "block";
+        document.getElementById("project-select-container").style.display = "block";
+        document.getElementById("projectTitle").style.display = "block";
+        document.getElementById("mainView").style.display = "block";
+      }, 600);
+    });
+    
+    /***** 작업 단계 배열 (추가 공정 포함) *****/
+    const tasks = [
+      { id: 1, title: "하리꼬미 작업" },
+      { id: 2, title: "표지 인쇄 / 라미네이팅" },
+      { id: 3, title: "<커버> 금박 / UV Spot 작업" },
+      { id: 4, title: "내지 윤전 인쇄" },
+      { id: 5, title: "재단" },
+      { id: 6, title: "접지" },
+      { id: 7, title: "JMD 후가공" },
+      { id: 8, title: "포장" },
+      { id: 9, title: "출고" }
+    ];
+    
+    /***** 각 프로젝트별 작업 데이터를 저장하는 객체 *****
+     * 각 작업은 { status, notes, outsource, showOutsource }를 가집니다.
+     * outsource: { outsourcedDate, inDate }
+     *****/
+    const projects = {};
+    
+    // 기본 프로젝트 생성은 하지 않음 - 사용자가 직접 추가!
+    let currentProject = null;
+    
+    // 프로젝트 선택 드롭다운 업데이트 (번호 포함)
+    function updateProjectSelect() {
+      const select = document.getElementById("projectSelect");
+      select.innerHTML = "";
+      let counter = 1;
+      for (let projectName in projects) {
+        const option = document.createElement("option");
+        option.value = projectName;
+        option.textContent = counter + ". " + projectName;
+        select.appendChild(option);
+        counter++;
+      }
+      if(currentProject && projects[currentProject]) {
+        select.value = currentProject;
+      }
+    }
+    
+    // 작업 카드 렌더링 (메인 화면)
+    function renderTasks() {
+      const container = document.getElementById("tasks-container");
+      container.innerHTML = "";
+      if(!currentProject || !projects[currentProject]) return;
+      const projectData = projects[currentProject];
+    
+      tasks.forEach(task => {
+        const taskData = projectData[task.id];
+        const taskDiv = document.createElement("div");
+        taskDiv.className = "task";
+        if (taskData.status === "작업 없음") {
+          taskDiv.classList.add("disabled");
+        }
+    
+        // 작업 제목
+        const titleDiv = document.createElement("div");
+        titleDiv.className = "task-title";
+        titleDiv.textContent = task.title;
+        taskDiv.appendChild(titleDiv);
+    
+        // 상태 버튼 영역 (대기, 진행중, 완료, 작업 없음, 외주)
+        const buttonsDiv = document.createElement("div");
+        buttonsDiv.className = "status-buttons";
+        const statuses = ["대기", "진행중", "완료", "작업 없음", "외주"];
+        statuses.forEach(status => {
+          const btn = document.createElement("button");
+          btn.textContent = status;
+          if (taskData.status === status && status !== "외주") {
+            btn.classList.add("active");
+            if (status === "대기") {
+              btn.classList.add("waiting");
+            } else if (status === "진행중") {
+              btn.classList.add("in-progress");
+            } else if (status === "완료") {
+              btn.classList.add("completed");
+            }
+          }
+          if (taskData.status === "작업 없음") {
+            btn.disabled = true;
+          }
+          if (status === "외주") {
+            btn.addEventListener("click", function() {
+              taskData.showOutsource = !taskData.showOutsource;
+              renderTasks();
+            });
+          } else {
+            btn.addEventListener("click", function() {
+              updateStatus(task.id, status);
+            });
+          }
+          buttonsDiv.appendChild(btn);
+        });
+        taskDiv.appendChild(buttonsDiv);
+    
+        // 외주 날짜 입력 영역 (토글)
+        if (taskData.showOutsource) {
+          const outsourceDiv = document.createElement("div");
+          outsourceDiv.className = "outsource-container";
+    
+          const outsourcedLabel = document.createElement("label");
+          outsourcedLabel.textContent = "외주 보낸 날짜:";
+          const outsourcedInput = document.createElement("input");
+          outsourcedInput.type = "date";
+          outsourcedInput.value = taskData.outsource.outsourcedDate;
+          outsourcedInput.addEventListener("change", function() {
+            taskData.outsource.outsourcedDate = outsourcedInput.value;
+          });
+          outsourceDiv.appendChild(outsourcedLabel);
+          outsourceDiv.appendChild(outsourcedInput);
+    
+          const inLabel = document.createElement("label");
+          inLabel.textContent = "입고 날짜:";
+          const inInput = document.createElement("input");
+          inInput.type = "date";
+          inInput.value = taskData.outsource.inDate;
+          inInput.addEventListener("change", function() {
+            taskData.outsource.inDate = inInput.value;
+          });
+          outsourceDiv.appendChild(inLabel);
+          outsourceDiv.appendChild(inInput);
+    
+          taskDiv.appendChild(outsourceDiv);
+        }
+    
+        // 기타사항 입력 영역
+        const notesDiv = document.createElement("div");
+        notesDiv.className = "notes-container";
+        const notesLabel = document.createElement("label");
+        notesLabel.textContent = "기타사항:";
+        const notesTextarea = document.createElement("textarea");
+        notesTextarea.placeholder = "기타사항 입력...";
+        notesTextarea.value = taskData.notes;
+        if (taskData.status === "작업 없음") {
+          notesTextarea.disabled = true;
+        }
+        notesTextarea.addEventListener("input", function() {
+          updateNotes(task.id, notesTextarea.value);
+        });
+        notesDiv.appendChild(notesLabel);
+        notesDiv.appendChild(notesTextarea);
+        taskDiv.appendChild(notesDiv);
+    
+        container.appendChild(taskDiv);
+      });
+    }
+    
+    // 상태 업데이트 함수
+    function updateStatus(taskId, status) {
+      projects[currentProject][taskId].status = status;
+      renderTasks();
+    }
+    
+    // 기타사항 업데이트 함수
+    function updateNotes(taskId, notes) {
+      projects[currentProject][taskId].notes = notes;
+    }
+    
+    // 프로젝트 선택 변경 이벤트
+    document.getElementById("projectSelect").addEventListener("change", function() {
+      currentProject = this.value;
+      document.getElementById("projectTitle").textContent = "프로젝트: " + currentProject;
+      renderTasks();
+    });
+    
+    // 프로젝트 추가 이벤트
+    document.getElementById("addProjectBtn").addEventListener("click", function() {
+      const input = document.getElementById("newProjectName");
+      const projectName = input.value.trim();
+      if (projectName && !projects[projectName]) {
+        // 새 프로젝트 생성
+        const projectData = {};
+        tasks.forEach(task => {
+          projectData[task.id] = { 
+            status: "대기", 
+            notes: "", 
+            outsource: { outsourcedDate: "", inDate: "" },
+            showOutsource: false
+          };
+        });
+        projects[projectName] = projectData;
+        currentProject = projectName;
+        updateProjectSelect();
+        document.getElementById("projectTitle").textContent = "프로젝트: " + currentProject;
+        renderTasks();
+        input.value = "";
+      } else if (projects[projectName]) {
+        alert("이미 존재하는 프로젝트명입니다.");
+      }
+    });
+    
+    // 프로젝트 삭제 이벤트
+    document.getElementById("deleteProjectBtn").addEventListener("click", function() {
+      if (currentProject && confirm("현재 프로젝트를 삭제하시겠습니까?")) {
+        delete projects[currentProject];
+        const keys = Object.keys(projects);
+        if (keys.length > 0) {
+          currentProject = keys[0];
+        } else {
+          currentProject = null;
+          document.getElementById("projectTitle").textContent = "";
+          document.getElementById("tasks-container").innerHTML = "";
+        }
+        updateProjectSelect();
+        if(currentProject) {
+          document.getElementById("projectTitle").textContent = "프로젝트: " + currentProject;
+          renderTasks();
+        }
+      }
+    });
+    
+    // 프로젝트명 수정 이벤트 (prompt 사용)
+    document.getElementById("editProjectBtn").addEventListener("click", function() {
+      if(!currentProject) return;
+      let newName = prompt("새 프로젝트명을 입력하세요", currentProject);
+      if (newName && newName.trim() !== "" && newName !== currentProject) {
+        newName = newName.trim();
+        if (projects[newName]) {
+          alert("이미 존재하는 프로젝트명입니다.");
+          return;
+        }
+        // 기존 프로젝트명 변경
+        projects[newName] = projects[currentProject];
+        delete projects[currentProject];
+        currentProject = newName;
+        updateProjectSelect();
+        document.getElementById("projectTitle").textContent = "프로젝트: " + currentProject;
+        renderTasks();
+      }
+    });
+    
+    // 저장 버튼 이벤트 (예시로 alert)
+    document.getElementById("saveBtn").addEventListener("click", function() {
+      alert("변경 사항이 저장되었습니다.");
+    });
+    
+    /***** 관리자 페이지 관련 *****/
+    document.getElementById("adminPageBtn").addEventListener("click", function() {
+      showAdminPage();
+    });
+    
+    document.getElementById("backToMainBtn").addEventListener("click", function() {
+      document.getElementById("adminView").classList.add("hidden");
+      setTimeout(() => {
+        document.getElementById("adminView").style.display = "none";
+        document.getElementById("mainView").style.display = "block";
+        document.getElementById("mainView").style.opacity = 1;
+      }, 500);
+    });
+    
+    function showAdminPage() {
+      document.getElementById("mainView").style.opacity = 0;
+      setTimeout(() => {
+        document.getElementById("mainView").style.display = "none";
+        document.getElementById("adminView").style.display = "block";
+        document.getElementById("adminView").classList.remove("hidden");
+        document.getElementById("adminView").style.opacity = 1;
+    
+        const adminContent = document.getElementById("adminContent");
+        adminContent.innerHTML = "";
+    
+        // 관리자용 테이블 생성
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        const projectHeader = document.createElement("th");
+        projectHeader.textContent = "프로젝트";
+        headerRow.appendChild(projectHeader);
+        tasks.forEach(task => {
+          const th = document.createElement("th");
+          th.textContent = task.title;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+    
+        const tbody = document.createElement("tbody");
+        for (let projectName in projects) {
+          const row = document.createElement("tr");
+          const projectCell = document.createElement("td");
+          projectCell.textContent = projectName;
+          row.appendChild(projectCell);
+          const projectData = projects[projectName];
+          tasks.forEach(task => {
+            const cell = document.createElement("td");
+            let status = projectData[task.id].status;
+            let statusStyle = "";
+            if(status === "대기") {
+              statusStyle = "color: black; font-weight: bold;";
+            } else if(status === "진행중") {
+              statusStyle = "color: darkorange; font-weight: bold;";
+            } else if(status === "완료") {
+              statusStyle = "color: darkred; font-weight: bold;";
+            } else {
+              statusStyle = "font-weight: bold;";
+            }
+            cell.innerHTML = 
+              `상태: <span style="${statusStyle}">${status}</span><br>` +
+              `비고: ${projectData[task.id].notes}<br>` +
+              `외주: ${projectData[task.id].outsource.outsourcedDate || "-"} / ${projectData[task.id].outsource.inDate || "-"}`;
+            row.appendChild(cell);
+          });
+          tbody.appendChild(row);
+        }
+        table.appendChild(tbody);
+        adminContent.appendChild(table);
+      }, 500);
+    }
+    
+    // 초기 렌더링 - 스플래시 화면에서 시작하므로 나머지 UI는 사용자가 "시작하기" 후 표시됨.
+  </script>
+</body>
+</html>
